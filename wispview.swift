@@ -29,6 +29,30 @@ app.setActivationPolicy(.regular)
 let cfg = WKWebViewConfiguration()
 cfg.defaultWebpagePreferences.allowsContentJavaScript = false
 
+// The page is built from a file somebody else wrote. Markdown carries raw HTML
+// through, so the page can hold a link or a meta refresh. A meta refresh needs
+// no JavaScript and no Content Security Policy covers it, so without this the
+// window would quietly load a remote page. Allow the first in-memory load and
+// nothing else. A click on a real link goes to the browser, where the person
+// can see where they are going.
+final class Nav: NSObject, WKNavigationDelegate {
+    private var firstLoadDone = false
+    func webView(_ webView: WKWebView,
+                 decidePolicyFor action: WKNavigationAction,
+                 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if !firstLoadDone { firstLoadDone = true; decisionHandler(.allow); return }
+        if action.navigationType == .linkActivated,
+           let url = action.request.url,
+           url.scheme == "http" || url.scheme == "https" {
+            NSWorkspace.shared.open(url)
+        } else if let url = action.request.url {
+            FileHandle.standardError.write("wispview: blocked navigation to \(url)\n".data(using: .utf8)!)
+        }
+        decisionHandler(.cancel)
+    }
+}
+let nav = Nav()
+
 final class Delegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func windowWillClose(_ note: Notification) { NSApp.terminate(nil) }
     func applicationShouldTerminateAfterLastWindowClosed(_ a: NSApplication) -> Bool { true }
@@ -48,6 +72,7 @@ win.isReleasedWhenClosed = false
 
 let web = WKWebView(frame: frame, configuration: cfg)
 web.autoresizingMask = [.width, .height]
+web.navigationDelegate = nav
 // baseURL nil keeps the page from reaching the file system or the network.
 web.loadHTMLString(html, baseURL: nil)
 win.contentView = web

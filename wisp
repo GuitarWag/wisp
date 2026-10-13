@@ -53,10 +53,13 @@ WIDTH=72em   # source reads better wide
 case "$ext" in
   md|markdown)
     command -v python3 >/dev/null || { echo "wisp needs python3 for markdown" >&2; exit 1; }
+    # -I runs python isolated. Without it the current directory is on sys.path,
+    # so a markdown.py sitting in the directory you happen to be in is imported
+    # and run instead of the real module.
     # codehilite runs fenced code through pygments, so a doc full of snippets
     # reads the same as a source file does.
-    body=$(python3 -m markdown -x fenced_code -x codehilite -x tables -x toc -- "$src" 2>/dev/null) \
-      || body=$(python3 -m markdown -- "$src")
+    body=$(python3 -I -m markdown -x fenced_code -x codehilite -x tables -x toc -- "$src" 2>/dev/null) \
+      || body=$(python3 -I -m markdown -- "$src")
     WIDTH=46em  # prose reads better narrow
     css=$(pygcss)
     ;;

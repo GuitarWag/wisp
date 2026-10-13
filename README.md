@@ -81,8 +81,13 @@ The source file is read only in both cases.
 hostile. python-markdown copies raw HTML from the source into its output, which
 means a markdown file can carry a script tag or an inline event handler.
 
-Three things stop that, and all three should stay:
+Five things stop that, and all five should stay:
 
+- wispview allows the first in-memory load and refuses every navigation after
+  it. A markdown file can hold a `<meta http-equiv="refresh">`, which needs no
+  JavaScript and which no Content Security Policy covers. Without this the
+  window would quietly load a remote page. A click on a real link opens the
+  browser instead, where you can see where you are going.
 - wispview sets `allowsContentJavaScript = false`, so the engine will not run a
   script at all. It passes `baseURL: nil`, so the page reaches neither the file
   system nor the network.
@@ -90,6 +95,9 @@ Three things stop that, and all three should stay:
   protects the QuickLook path, which has no engine switch.
 - `wisp` escapes the file name before writing it into the page. A name such as
   `<img src=x onerror=...>.md` is legal on disk.
+- Markdown runs through `python3 -I`. Without `-I` the current directory sits on
+  `sys.path`, so a `markdown.py` in whatever directory you happen to be in is
+  imported and run in place of the real module.
 
 Both file arguments pass after `--`, so a name that starts with a dash cannot
 become a command option.
