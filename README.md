@@ -105,6 +105,22 @@ become a command option.
 Do not write a backtick into the HTML template in `wisp`. The heredoc is
 unquoted, so bash reads a backtick as a command.
 
+## Tests
+
+```sh
+./test.sh
+```
+
+Sixteen checks: rendering for markdown, source, yaml and plain text; a binary
+file refused; and one per defence in the section above. No framework. The
+viewer is replaced by a stub, so nothing opens a window.
+
+Each check was verified by removing the fix it covers and watching it fail.
+That mattered: the first version of the isolation check grepped stderr for the
+hijacked module's output, but `wisp` sends the converter's stderr to
+`/dev/null`, so a hijacked run is silent and the check passed either way. It
+now asserts that the real module produced a heading.
+
 ## Limits
 
 - It takes a path. It does not read standard input.
